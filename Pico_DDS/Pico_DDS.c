@@ -29,7 +29,7 @@ uint16_t Fs = 50000;
 // The third bit of each half is the previous button state
 uint8_t debounce = 0;
 uint8_t state = 0;
-uint16_t amp = 0;
+uint16_t amp = 4095;
 
 void freq(uint16_t Fout){
     phase_inc = 65536/Fs*Fout;
@@ -51,7 +51,7 @@ static void freq_select(void) {
     }
     else{
         // if(amp > 0){
-        //     // amp -= 1;
+        //     amp -= 1;
         // }
         // else{
         //     phase = 0;
@@ -75,10 +75,13 @@ static void alarm_irq(void) {
    
     // In Progress, Smoothing out attack and fall off shape
     // if((state == 0) & (amp > 0)){
-    //     amp--;
+    //     amp -= 1;
     // }
-    // else if(amp < 16){
-    //     amp++;
+    // else if(amp < 4095){
+    //     amp += 1;
+    // }
+    // else{
+    //     amp = amp;
     // }
 
     // Increment Phase
@@ -89,6 +92,7 @@ static void alarm_irq(void) {
 
     // Update configs and data in main DAC register for SPI transaction
     DAC_data = (configs & 0xF000) | (data & 0x0FFF);
+    // (uint16_t)(data*amp)
 
     // Writing SPI Transaction
     spi_write16_blocking(spi0,regs,1);
@@ -173,5 +177,7 @@ int main()
         update_button_state();
         output_state();
         freq_select();
+        // printf("%d\n", (uint16_t)(((double)data)*amp));
+        // printf("%d\n", data);
     }
 }
