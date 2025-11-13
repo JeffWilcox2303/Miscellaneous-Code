@@ -15,6 +15,7 @@
 
 import pandas as pd
 from sys import argv, exit
+import click
 
 # Select these columns from the input file
 FILTER = ["Ref", "PosX", "PosY", "Side", "Rot"]
@@ -28,9 +29,15 @@ JLCPCB_NAMES = {
     "Rot" : "Rotation"
 }
 
-# Read data, filter, rename and write output
-data = pd.read_csv('Pico_DDS-top-pos.csv')
-print(data)
-filtered = data[FILTER]
-result = filtered.rename(JLCPCB_NAMES, axis="columns", errors="raise")
-result.to_csv('test.csv', index=False)
+@click.command()
+@click.option('--filename')
+def convert(filename):
+    # Read data, filter, rename and write output
+    data = pd.read_csv(filename)
+    print(data)
+    filtered = data[FILTER]
+    result = filtered.rename(JLCPCB_NAMES, axis="columns", errors="raise")
+    result.to_csv(filename, index=False)
+
+if __name__ == '__main__':
+    convert()

@@ -17,7 +17,7 @@ def update_plot(frame):
         temp = ser.readline().decode('utf-8').strip()
         try:
             value = float(temp)
-            # value = 27 - (int(temp)*3.3/2**12 - 0.706)/0.0011721
+            # value = 27 - (int(temp)*3.3 - 0.706)/0.0011721
             data_points.append(value)
             
             x_data = list(range(len(data_points)))
@@ -30,7 +30,7 @@ def update_plot(frame):
             print(f'Invalid data received: {temp}')
     return line,
 
-ani = FuncAnimation(fig, update_plot, interval=100, blit=False)
+ani = FuncAnimation(fig, update_plot, interval=1, blit=False)
 plt.show()
 
 ser.close()

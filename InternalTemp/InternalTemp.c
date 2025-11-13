@@ -3,6 +3,7 @@
 #include "hardware/adc.h"
 #include "hardware/uart.h"
 
+const float conversion_factor = 3.3f / (1<<12);
 
 int main()
 {
@@ -15,11 +16,10 @@ int main()
     adc_set_temp_sensor_enabled(true);
 
     while (true) {
-        const float conversion_factor = 3.3f / (1<<12);
         uint16_t result = adc_read();
         // volatile float temp = 27.0f - (result*conversion_factor - 0.706f)/0.0011721f;
-        printf("%d\n", (int) (27.0f - (result*conversion_factor - 0.706f)/0.0011721f));
-        // printf("%d", result);
-        sleep_ms(1000);
+        printf("%f\n", (27.0f - (result*conversion_factor - 0.706f)/0.0011721f));
+        // printf("%d\n", result);
+        sleep_ms(50);
     }
 }
