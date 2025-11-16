@@ -18,7 +18,7 @@ int main()
     while (true) {
         uint16_t result = adc_read();
         // volatile float temp = 27.0f - (result*conversion_factor - 0.706f)/0.0011721f;
-        printf("%f\n", (27.0f - (result*conversion_factor - 0.706f)/0.0011721f));
+        printf("%d\n", (int) (27.0f - (result*conversion_factor - 0.706f)/0.0011721f));
         // printf("%d\n", result);
         sleep_ms(50);
     }

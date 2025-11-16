@@ -4,13 +4,22 @@ import time
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from collections import deque
+import pandas as pd
+import datetime
 
 ser = serial.Serial('COM5', 9600, timeout=0.001)
 
-data_points = deque(maxlen=100)
+reflow_length = 240 # seconds
+sample_period = 0.05 # seconds/sample
+n = int(reflow_length/sample_period) # samples
+
+data_points = deque(maxlen=n)
+
+profile = deque(maxlen=n)
 
 fig, ax = plt.subplots()
 line, = ax.plot([], [], 'b-')
+line1, = ax.plot([],[],'r-')
 
 def update_plot(frame):
     if ser.in_waiting > 0:
@@ -23,7 +32,11 @@ def update_plot(frame):
             x_data = list(range(len(data_points)))
             y_data = list(data_points)
 
-            line.set_data(list(x_data), list(y_data))
+            profile.append(30)
+            y1 = list(profile)
+
+            line.set_data(np.array(x_data)*0.05, list(y_data))
+            line1.set_data(np.array(x_data)*0.05, np.sin(np.array(x_data)*0.05))
             ax.relim()
             ax.autoscale_view()
         except ValueError:
@@ -34,3 +47,7 @@ ani = FuncAnimation(fig, update_plot, interval=1, blit=False)
 plt.show()
 
 ser.close()
+data = {'Sample Time (s)': np.array(list(range(len(data_points))))*sample_period, 'Measured Temp (C)': np.array(data_points), 'Profile Temp (C)': np.array(profile)}
+df = pd.DataFrame(data)
+now = datetime.datetime.now()
+df.to_csv(f'temp_data_{now.date()}_{now.hour}h{now.minute}m{now.second}s.csv')
