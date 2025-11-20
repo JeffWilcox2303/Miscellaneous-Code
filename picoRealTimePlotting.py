@@ -10,7 +10,7 @@ import datetime
 ser = serial.Serial('COM5', 9600, timeout=0.001)
 
 reflow_length = 240 # seconds
-sample_period = 0.05 # seconds/sample
+sample_period = 0.1 # seconds/sample
 n = int(reflow_length/sample_period) # samples
 
 data_points = deque(maxlen=n)
@@ -36,18 +36,18 @@ def update_plot(frame):
             y1 = list(profile)
 
             line.set_data(np.array(x_data)*0.05, list(y_data))
-            line1.set_data(np.array(x_data)*0.05, np.sin(np.array(x_data)*0.05))
+            line1.set_data(np.array(x_data)*0.05, np.array(profile))
             ax.relim()
             ax.autoscale_view()
         except ValueError:
             print(f'Invalid data received: {temp}')
     return line,
 
-ani = FuncAnimation(fig, update_plot, interval=1, blit=False)
+ani = FuncAnimation(fig, update_plot, interval=50, blit=False)
 plt.show()
 
 ser.close()
-data = {'Sample Time (s)': np.array(list(range(len(data_points))))*sample_period, 'Measured Temp (C)': np.array(data_points), 'Profile Temp (C)': np.array(profile)}
-df = pd.DataFrame(data)
-now = datetime.datetime.now()
-df.to_csv(f'temp_data_{now.date()}_{now.hour}h{now.minute}m{now.second}s.csv')
+# data = {'Sample Time (s)': np.array(list(range(len(data_points))))*sample_period, 'Measured Temp (C)': np.array(data_points), 'Profile Temp (C)': np.array(profile)}
+# df = pd.DataFrame(data)
+# now = datetime.datetime.now()
+# df.to_csv(f'temp_data_{now.date()}_{now.hour}h{now.minute}m{now.second}s.csv')
