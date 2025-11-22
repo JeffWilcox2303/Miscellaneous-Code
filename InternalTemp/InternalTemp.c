@@ -29,8 +29,9 @@ int main()
         // volatile float temp = 27.0f - (result*conversion_factor - 0.706f)/0.0011721f;
         sleep_ms(10);
         gpio_put(out,true);
-        uint temp = (int) (27.0f - (result*conversion_factor - 0.706f)/0.0011721f);
-        printf("%d\n", temp);
+        // uint16_t temp = (uint16_t) (27.0f - (result*conversion_factor - 0.706f)/0.0011721f);
+        // printf("%d\n", result);
+        fwrite(&result, sizeof(result), 1, stdout);
         gpio_put(out,false);
         // printf("%d\n", result);
         sleep_ms(10);
