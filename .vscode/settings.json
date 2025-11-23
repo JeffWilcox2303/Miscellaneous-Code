@@ -2,5 +2,7 @@
     "files.associations": {
         "Pico_DDS.C": "cpp"
     },
-    "cmake.sourceDirectory": "C:/Users/jeffr/Documents/Miscellaneous Code/Pico_DDS"
+    "cmake.sourceDirectory": "C:/Users/jeffr/Documents/Miscellaneous Code/Pico_DDS",
+    "cmake.ignoreCMakeListsMissing": true,
+    "python-envs.pythonProjects": []
 }

@@ -31,21 +31,11 @@ def serial_reader(port, q, stop_flag):
     batch = []
     while not stop_flag.is_set():
         try:
-            line = port.read(port.in_waiting or 64)  # or port.read(n) if sending binary
-            if line:
-                buffer += line
-                while len(buffer) >= 2:
-                    sample = buffer[:2]
-                    buffer = buffer[2:]
-                    batch.append(sample)
-
-                    if len(batch) >= 100:
-                        q.put(b''.join(batch))
-                        batch.clear()
+            line = port.readline()  # or port.read(n) if sending binary
+            line_str = line.decode('utf-8').strip()
+            q.put(line_str)
         except serial.SerialException:
             break
-    if batch:
-        q.put(b''.join(batch))
 
 # -------- Main plotting loop --------
 # Modified from ChatGPT
@@ -64,7 +54,7 @@ def plotting_loop(q):
         while not q.empty():
             raw = q.get()
             try:
-                value = float(27 - (struct.unpack('<H',raw)[0]*3.3/2**12 - 0.706)/0.0011721)
+                value = float(27 - (int(raw)*3.3/2**12 - 0.706)/0.0011721)
                 xs.append(time.time() - start)
                 ys.append(value)
             except ValueError:

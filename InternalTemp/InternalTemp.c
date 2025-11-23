@@ -27,13 +27,13 @@ int main()
         uint16_t result = adc_read();
         gpio_put(adcread,false);
         // volatile float temp = 27.0f - (result*conversion_factor - 0.706f)/0.0011721f;
-        sleep_ms(10);
+        sleep_ms(1);
         gpio_put(out,true);
         // uint16_t temp = (uint16_t) (27.0f - (result*conversion_factor - 0.706f)/0.0011721f);
         // printf("%d\n", result);
-        fwrite(&result, sizeof(result), 1, stdout);
+        printf("%d\n", result);
         gpio_put(out,false);
         // printf("%d\n", result);
-        sleep_ms(10);
+        sleep_ms(1);
     }
 }
