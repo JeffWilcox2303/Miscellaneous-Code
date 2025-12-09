@@ -114,18 +114,21 @@ class MainWindow(QMainWindow):
         self.update_timer.start(33)
 
     def on_data(self, t, value):
+        internal_temp = float(27 - (value*3.3/2**12 - 0.706)/0.0011721)
+        tc_temp = float(value*1023.75/2**12)
+        next = tc_temp
         # Append data
         self.history_time.append(t)
-        self.history_values.append(float(27 - (value*3.3/2**12 - 0.706)/0.0011721))
+        self.history_values.append(next)
 
         self.window1_time.append(t)
-        self.window1_values.append(float(27 - (value*3.3/2**12 - 0.706)/0.0011721))
+        self.window1_values.append(next)
         while self.window1_time and (t - self.window1_time[0] > self.window1):
             self.window1_time.popleft()
             self.window1_values.popleft()
 
         self.window2_time.append(t)
-        self.window2_values.append(float(27 - (value*3.3/2**12 - 0.706)/0.0011721))
+        self.window2_values.append(next)
         while self.window2_time and (t - self.window2_time[0] > self.window2):
             self.window2_time.popleft()
             self.window2_values.popleft()
@@ -150,7 +153,7 @@ class MainWindow(QMainWindow):
         QtWidgets.QMessageBox.information(self, "Saved", "Data saved to CSV.")
 
     def send_command(self):
-        self.thread.send_request.emit("START")
+        self.thread.send_request.emit('s')
 
     def closeEvent(self, event):
         self.thread.stop()
@@ -172,8 +175,9 @@ if __name__ == "__main__":
     port = find_rp2040_port()
     if not port:
         # print("RP2040 not found. Plug it in and check dmesg / Device Manager.")
-        print("RP2040 not found. Defaulting to COM5")
-        port = "COM5"
+        # May need to manually set this. Can be found in the Serial Monitor tab of VSCode
+        port = "COM6"
+        print(f"RP2040 not found. Trying {port}")
         # sys.exit(1)
 
     app = QApplication(sys.argv)
