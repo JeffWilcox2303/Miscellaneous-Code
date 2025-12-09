@@ -53,7 +53,7 @@ static void alarm_irq(void) {
    
     // Writing SPI Transaction
     spi_read16_blocking(spi0,dummy_write,regs,1);
-    // printf("%d\n", ((TC_data&0x7FF8) >> 3));
+    printf("%d\n", ((TC_data&0x7FF8) >> 3));
 }
 
 int main()
@@ -95,7 +95,7 @@ int main()
     while (true) {
         // Converted TC_data to temperature
         temp = (TC_data & 0x7FF8) >> 3;
-        printf("%d\n", temp);
+        // printf("%d\n", temp);
         
         // // Check state/time and update setpoint/state as needed
         // if(state == 0){
@@ -148,7 +148,7 @@ int main()
         // }
 
         // Set SSR based on setpoint and state
-        if(temp < (25 << 2)){
+        if(temp < 100){
             gpio_put(15,true);
         }
         else{
