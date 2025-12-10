@@ -16,7 +16,7 @@ from collections import deque
 # Serial Reader Thread
 # -----------------------------
 class SerialThread(QThread):
-    data_received = pyqtSignal(float, int)
+    data_received = pyqtSignal(float, int, int)
     send_request = QtCore.pyqtSignal(str)
 
     def __init__(self, port, baud=115200):
@@ -34,9 +34,10 @@ class SerialThread(QThread):
                 try:
                     line = self.ser.readline().decode("utf-8").strip()
                     if line:
-                        value = int(line)
+                        value = int(line.split(',')[0])
+                        setpoint = int(line.split(',')[1])
                         t = time.monotonic() - self.t0
-                        self.data_received.emit(t, value)
+                        self.data_received.emit(t, value, setpoint)
                 except:
                     pass
             self.ser.close()
@@ -71,6 +72,7 @@ class MainWindow(QMainWindow):
 
         self.window2_time = deque()
         self.window2_values = deque()
+        self.window2_setpoint = deque()
 
         # PyQtGraph setup
         widget = QtWidgets.QWidget()
@@ -84,18 +86,23 @@ class MainWindow(QMainWindow):
         # 240-second window
         self.plot_window2 = pg.PlotWidget(title="Last 240 Seconds")
         self.curve_window2 = self.plot_window2.plot([], [])
+        self.setpoint_window2 = self.plot_window2.plot([], [], pen='r')
 
         # Save button
         self.save_button = QtWidgets.QPushButton("Save CSV")
-        self.save_button .clicked.connect(self.save_csv)
+        self.save_button.clicked.connect(self.save_csv)
 
         # Send button
         self.send_button = QtWidgets.QPushButton("Send Command")
         self.send_button.clicked.connect(self.send_command)
 
+        # State Display
+        self.state_display = QtWidgets.QLabel("State: None")
+
         layout.addWidget(self.send_button)
         layout.addWidget(self.plot_window1)
         layout.addWidget(self.plot_window2)
+        layout.addWidget(self.state_display)
         layout.addWidget(self.save_button)
 
         # Axis labels
@@ -113,10 +120,12 @@ class MainWindow(QMainWindow):
         self.update_timer.timeout.connect(self.update_plots)
         self.update_timer.start(33)
 
-    def on_data(self, t, value):
+    def on_data(self, t, value, setpoint):
         internal_temp = float(27 - (value*3.3/2**12 - 0.706)/0.0011721)
         tc_temp = float(value*1023.75/2**12)
         next = tc_temp
+
+        # self.state_display.setText(f"State: {state}")
         # Append data
         self.history_time.append(t)
         self.history_values.append(next)
@@ -129,15 +138,18 @@ class MainWindow(QMainWindow):
 
         self.window2_time.append(t)
         self.window2_values.append(next)
+        self.window2_setpoint.append(setpoint)
         while self.window2_time and (t - self.window2_time[0] > self.window2):
             self.window2_time.popleft()
             self.window2_values.popleft()
+            self.window2_setpoint.popleft()
 
 
     def update_plots(self):
         if self.history_time:
             self.curve_window1.setData(self.window1_time, self.window1_values)
             self.curve_window2.setData(self.window2_time, self.window2_values)
+            self.setpoint_window2.setData(self.window2_time, self.window2_setpoint)
 
     def save_csv(self):
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save CSV", "", "CSV Files (*.csv)")
@@ -176,7 +188,7 @@ if __name__ == "__main__":
     if not port:
         # print("RP2040 not found. Plug it in and check dmesg / Device Manager.")
         # May need to manually set this. Can be found in the Serial Monitor tab of VSCode
-        port = "COM6"
+        port = "COM7"
         print(f"RP2040 not found. Trying {port}")
         # sys.exit(1)
 
