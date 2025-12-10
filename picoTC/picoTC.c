@@ -39,10 +39,10 @@ uint16_t TC_data;
 uint16_t *dummy;
 uint16_t dummy_write = 0x0000;
 volatile uint16_t temp;
-// uint16_t setpoint = 30;
-// volatile uint8_t state = 0;
-// uint32_t begin_state;
-// uint32_t current_time;
+uint16_t setpoint = 30;
+volatile uint8_t state = 0;
+uint32_t begin_state;
+uint32_t current_time;
 
 static void alarm_irq(void) {
    // Clear the alarm IRQ
@@ -65,7 +65,7 @@ int main()
 
     // SSR Level Shift Test
     gpio_init(15);
-    gpio_set_dir(15, false);
+    gpio_set_dir(15, true);
     gpio_set_drive_strength(15,GPIO_DRIVE_STRENGTH_12MA);
     gpio_put(15,false);
 
@@ -97,58 +97,58 @@ int main()
         temp = (TC_data & 0x7FF8) >> 3;
         // printf("%d\n", temp);
         
-        // // Check state/time and update setpoint/state as needed
-        // if(state == 0){
-        //     int input = getchar_timeout_us(0);
-        //     if(input != PICO_ERROR_TIMEOUT){ // s for start
-        //         state = 1;
-        //         begin_state = time_us_32();
-        //     }
-        // }
-        // else if(state == 1){
-        //     current_time = time_us_32();
-        //     setpoint += fix2int15(multfix15(float2fix15(1e-6), int2fix15(2*(current_time - begin_state))));
-        //     if(setpoint >= 150){
-        //         state == 2;
-        //         setpoint = 150;
-        //         begin_state = time_us_32();
-        //     }
-        // }
-        // else if(state == 2){
-        //     current_time = time_us_32();
-        //     if(current_time - begin_state >= 100000000){
-        //         state == 3;
-        //         begin_state = time_us_32();
-        //     }
-        // }
-        // else if(state == 3){
-        //     current_time = time_us_32();
-        //     setpoint += fix2int15(multfix15(float2fix15(1e-6), int2fix15(2*(current_time - begin_state))));
-        //     if(setpoint >= 250){
-        //         state == 4;
-        //         setpoint = 250;
-        //         begin_state = time_us_32();
-        //     }
-        // }
-        // else if(state == 4){
-        //     current_time = time_us_32();
-        //     if(current_time - begin_state >= 60000000){
-        //         state == 5;
-        //         setpoint = 250;
-        //         begin_state = time_us_32();
-        //     }
-        // }
-        // else if(state == 5){
-        //     current_time = time_us_32();
-        //     setpoint -= fix2int15(multfix15(float2fix15(1e-6), int2fix15(4*(current_time - begin_state))));
-        //     if(setpoint <= 30){
-        //         state == 0;
-        //         setpoint = 30;
-        //     }
-        // }
+        // Check state/time and update setpoint/state as needed
+        if(state == 0){
+            int input = getchar_timeout_us(0);
+            if(input != PICO_ERROR_TIMEOUT){ // s for start
+                state = 1;
+                begin_state = time_us_32();
+            }
+        }
+        else if(state == 1){
+            current_time = time_us_32();
+            setpoint += fix2int15(multfix15(float2fix15(1e-6), int2fix15(2*(current_time - begin_state))));
+            if(setpoint >= 150){
+                state == 2;
+                setpoint = 150;
+                begin_state = time_us_32();
+            }
+        }
+        else if(state == 2){
+            current_time = time_us_32();
+            if(current_time - begin_state >= 100000000){
+                state == 3;
+                begin_state = time_us_32();
+            }
+        }
+        else if(state == 3){
+            current_time = time_us_32();
+            setpoint += fix2int15(multfix15(float2fix15(1e-6), int2fix15(2*(current_time - begin_state))));
+            if(setpoint >= 250){
+                state == 4;
+                setpoint = 250;
+                begin_state = time_us_32();
+            }
+        }
+        else if(state == 4){
+            current_time = time_us_32();
+            if(current_time - begin_state >= 60000000){
+                state == 5;
+                setpoint = 250;
+                begin_state = time_us_32();
+            }
+        }
+        else if(state == 5){
+            current_time = time_us_32();
+            setpoint -= fix2int15(multfix15(float2fix15(1e-6), int2fix15(4*(current_time - begin_state))));
+            if(setpoint <= 30){
+                state == 0;
+                setpoint = 30;
+            }
+        }
 
         // Set SSR based on setpoint and state
-        if(temp < 100){
+        if(temp < (setpoint << 2)){
             gpio_put(15,true);
         }
         else{
