@@ -69,6 +69,12 @@ int main()
     gpio_set_drive_strength(15,GPIO_DRIVE_STRENGTH_12MA);
     gpio_put(15,false);
 
+    // Debug LED
+    gpio_init(25);
+    gpio_set_dir(25, true);
+    // gpio_set_drive_strength(15,GPIO_DRIVE_STRENGTH_12MA);
+    gpio_put(25,false);
+
     // SPI initialisation. This example will use SPI at 1MHz.
     gpio_set_function(PIN_MISO, GPIO_FUNC_SPI);
     gpio_set_function(PIN_CS,   GPIO_FUNC_SPI);
@@ -107,9 +113,9 @@ int main()
         }
         else if(state == 1){
             current_time = time_us_32();
-            setpoint += fix2int15(multfix15(float2fix15(1e-6), int2fix15(2*(current_time - begin_state))));
+            setpoint += 2*(current_time - begin_state)/1000000;
             if(setpoint >= 150){
-                state == 2;
+                state = 2;
                 setpoint = 150;
                 begin_state = time_us_32();
             }
@@ -117,15 +123,15 @@ int main()
         else if(state == 2){
             current_time = time_us_32();
             if(current_time - begin_state >= 100000000){
-                state == 3;
+                state = 3;
                 begin_state = time_us_32();
             }
         }
         else if(state == 3){
             current_time = time_us_32();
-            setpoint += fix2int15(multfix15(float2fix15(1e-6), int2fix15(2*(current_time - begin_state))));
+            setpoint += 2*(current_time - begin_state)/1000000;
             if(setpoint >= 250){
-                state == 4;
+                state = 4;
                 setpoint = 250;
                 begin_state = time_us_32();
             }
@@ -133,26 +139,26 @@ int main()
         else if(state == 4){
             current_time = time_us_32();
             if(current_time - begin_state >= 60000000){
-                state == 5;
+                state = 5;
                 setpoint = 250;
                 begin_state = time_us_32();
             }
         }
         else if(state == 5){
             current_time = time_us_32();
-            setpoint -= fix2int15(multfix15(float2fix15(1e-6), int2fix15(4*(current_time - begin_state))));
+            setpoint -= 4*(current_time - begin_state)/1000000;
             if(setpoint <= 30){
-                state == 0;
+                state = 0;
                 setpoint = 30;
             }
         }
 
         // Set SSR based on setpoint and state
         if(temp < (setpoint << 2)){
-            gpio_put(15,true);
+            gpio_put(25,true);
         }
         else{
-            gpio_put(15,false);
+            gpio_put(25,false);
         }
     }
 }
