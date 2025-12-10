@@ -188,7 +188,7 @@ if __name__ == "__main__":
     if not port:
         # print("RP2040 not found. Plug it in and check dmesg / Device Manager.")
         # May need to manually set this. Can be found in the Serial Monitor tab of VSCode
-        port = "COM7"
+        port = "COM6"
         print(f"RP2040 not found. Trying {port}")
         # sys.exit(1)
 
