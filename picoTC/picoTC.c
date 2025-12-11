@@ -10,8 +10,14 @@
 #include "pico/multicore.h"
 #include "pt_cornell_rp2040_v1_3.h"
 
-#define ALARM_NUM 0
+#define TC_ALARM 0
 #define TS 300000 // Sample period in microseconds
+
+#define CTRL_ALARM 1
+#define TCTRL 20 // Sample period in microseconds
+
+#define READ_ALARM 2
+#define TREAD 20 // Sample period in microseconds
 
 // SPI Defines
 // We are going to use SPI 0, and allocate it to the following GPIO pins
@@ -53,17 +59,94 @@ static uint16_t plateau0 = 30;
 static uint16_t plateau1 = 150;
 static uint16_t plateau2 = 250;
 
-static void alarm_irq(void) {
+static void tc_alarm(void) {
    // Clear the alarm IRQ
-    hw_clear_bits(&timer_hw -> intr, 1u << ALARM_NUM);
+    hw_clear_bits(&timer_hw -> intr, 1u << TC_ALARM);
 
     // Reset alarm register
-    timer_hw -> alarm[ALARM_NUM] = timer_hw -> timerawl + TS;
+    timer_hw -> alarm[TC_ALARM] = timer_hw -> timerawl + TS;
    
     // Writing SPI Transaction
     spi_read16_blocking(spi0,dummy_write,regs,1);
     printf("%d,%d\n", ((TC_data&0x7FF8) >> 3), setpoint);
 }
+
+static void ctrl_alarm(void) {
+   // Clear the alarm IRQ
+    hw_clear_bits(&timer_hw -> intr, 1u << CTRL_ALARM);
+
+    // Reset alarm register
+    timer_hw -> alarm[CTRL_ALARM] = timer_hw -> timerawl + TCTRL;
+   
+    // Compare measured temperature to setpoint
+
+    // Converted TC_data to temperature
+    temp = (TC_data & 0x7FF8) >> 3;
+
+    // Check state/time and update setpoint/state as needed
+    if(state == 0){
+        state = 1;
+        gpio_put(25,true);
+        begin_state = time_us_32();
+        gpio_put(25,false);
+    }
+    else if(state == 1){
+        current_time = time_us_32();
+        setpoint = plateau0 + 2*(current_time - begin_state)/1000000;
+        if(setpoint >= plateau1){
+            state = 2;
+            setpoint = plateau1;
+            begin_state = time_us_32();
+        }
+    }
+    else if(state == 2){
+        current_time = time_us_32();
+        if(current_time - begin_state >= 100000000){
+            state = 3;
+            begin_state = time_us_32();
+        }
+    }
+    else if(state == 3){
+        current_time = time_us_32();
+        setpoint = plateau1 + 2*(current_time - begin_state)/1000000;
+        if(setpoint >= plateau2){
+            state = 4;
+            setpoint = plateau2;
+            begin_state = time_us_32();
+        }
+    }
+    else if(state == 4){
+        current_time = time_us_32();
+        if(current_time - begin_state >= 60000000){
+            state = 5;
+            begin_state = time_us_32();
+        }
+    }
+    else if(state == 5){
+        current_time = time_us_32();
+        setpoint = plateau2 - 4*(current_time - begin_state)/1000000;
+        if(setpoint <= plateau0){
+            state = 0;
+            setpoint = plateau0;
+        }
+    }
+
+    // Set SSR based on setpoint and state
+    if(temp < (setpoint << 2)){
+        gpio_put(25,true);
+    }
+    else{
+        gpio_put(25,false);
+    }
+}
+
+// static void read_alarm(void) {
+//    // Clear the alarm IRQ
+//     hw_clear_bits(&timer_hw -> intr, 1u << READ_ALARM);
+
+//     // Reset alarm register
+//     timer_hw -> alarm[READ_ALARM] = timer_hw -> timerawl + TREAD;
+// }
 
 int main()
 {
@@ -81,7 +164,7 @@ int main()
 
     // LED for debug
     gpio_init(25);
-    gpio_set_dir(25,GPIO_OUTPUT);
+    gpio_set_dir(25, GPIO_OUTPUT);
     gpio_put(25,false);
 
     // SPI initialisation. This example will use SPI at 1MHz.
@@ -98,74 +181,34 @@ int main()
     // gpio_put(PIN_CS, 1);
     // For more examples of SPI use see https://github.com/raspberrypi/pico-examples/tree/master/spi
 
-    // Enable alarm interrupt
-    hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM);
+    // Enable alarm interrupt for TC read
+    hw_set_bits(&timer_hw->inte, 1u << TC_ALARM);
     // Set IRQ handler to the alarm_irq function
-    irq_set_exclusive_handler(TIMER_IRQ_0,alarm_irq);
+    irq_set_exclusive_handler(TIMER_IRQ_0, tc_alarm);
     // Enable IRQ for alarm 0
     irq_set_enabled(TIMER_IRQ_0,true);
     // Set the alarm time and arm it
-    timer_hw -> alarm[ALARM_NUM] = timer_hw -> timerawl + TS;
+    timer_hw -> alarm[TC_ALARM] = timer_hw -> timerawl + TS;
+
+    // Enable alarm interrupt for setpoint comparison
+    hw_set_bits(&timer_hw->inte, 1u << CTRL_ALARM);
+    // Set IRQ handler to the alarm_irq function
+    irq_set_exclusive_handler(TIMER_IRQ_1, ctrl_alarm);
+    // Enable IRQ for alarm 0
+    irq_set_enabled(TIMER_IRQ_1,true);
+    // Set the alarm time and arm it
+    timer_hw -> alarm[CTRL_ALARM] = timer_hw -> timerawl + TCTRL;
+
+    // // Enable alarm interrupt to read from computer
+    // hw_set_bits(&timer_hw->inte, 1u << READ_ALARM);
+    // // Set IRQ handler to the alarm_irq function
+    // irq_set_exclusive_handler(TIMER_IRQ_2, read_alarm);
+    // // Enable IRQ for alarm 0
+    // irq_set_enabled(TIMER_IRQ_2,true);
+    // // Set the alarm time and arm it
+    // timer_hw -> alarm[READ_ALARM] = timer_hw -> timerawl + TREAD;
 
     while (true) {
-        // Converted TC_data to temperature
-        temp = (TC_data & 0x7FF8) >> 3;
         // printf("%d\n", temp);
-        
-        // Check state/time and update setpoint/state as needed
-        if(state == 0){
-            state = 1;
-            gpio_put(25,true);
-            begin_state = time_us_32();
-            gpio_put(25,false);
-        }
-        else if(state == 1){
-            current_time = time_us_32();
-            setpoint = plateau0 + 2*(current_time - begin_state)/1000000;
-            if(setpoint >= plateau1){
-                state = 2;
-                setpoint = plateau1;
-                begin_state = time_us_32();
-            }
-        }
-        else if(state == 2){
-            current_time = time_us_32();
-            if(current_time - begin_state >= 100000000){
-                state = 3;
-                begin_state = time_us_32();
-            }
-        }
-        else if(state == 3){
-            current_time = time_us_32();
-            setpoint = plateau1 + 2*(current_time - begin_state)/1000000;
-            if(setpoint >= plateau2){
-                state = 4;
-                setpoint = plateau2;
-                begin_state = time_us_32();
-            }
-        }
-        else if(state == 4){
-            current_time = time_us_32();
-            if(current_time - begin_state >= 60000000){
-                state = 5;
-                begin_state = time_us_32();
-            }
-        }
-        else if(state == 5){
-            current_time = time_us_32();
-            setpoint = plateau2 - 4*(current_time - begin_state)/1000000;
-            if(setpoint <= plateau0){
-                state = 0;
-                setpoint = plateau0;
-            }
-        }
-
-        // Set SSR based on setpoint and state
-        if(temp < (setpoint << 2)){
-            gpio_put(25,true);
-        }
-        else{
-            gpio_put(25,false);
-        }
     }
 }
