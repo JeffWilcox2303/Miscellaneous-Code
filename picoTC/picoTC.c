@@ -58,6 +58,7 @@ uint32_t current_time;
 static uint16_t plateau0 = 30;
 static uint16_t plateau1 = 150;
 static uint16_t plateau2 = 250;
+int c = PICO_ERROR_TIMEOUT;
 
 static void tc_alarm(void) {
    // Clear the alarm IRQ
@@ -133,10 +134,10 @@ static void ctrl_alarm(void) {
 
     // Set SSR based on setpoint and state
     if(temp < (setpoint << 2)){
-        gpio_put(25,true);
+        gpio_put(15,true);
     }
     else{
-        gpio_put(25,false);
+        gpio_put(15,false);
     }
 }
 
@@ -146,6 +147,9 @@ static void ctrl_alarm(void) {
 
 //     // Reset alarm register
 //     timer_hw -> alarm[READ_ALARM] = timer_hw -> timerawl + TREAD;
+
+//     // Read from computer
+//     int c = getchar_timeout_us(1000);
 // }
 
 int main()
